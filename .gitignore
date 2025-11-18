@@ -44,10 +44,10 @@ ipython_config.py
 # VS Code
 .vscode/
 
-# Data files (keep only processed)
-data/raw/*.csv
+# Data files (ignore all data files, keep only .gitkeep for directory structure)
+data/raw/*
 !data/raw/.gitkeep
-data/processed/*.csv
+data/processed/*
 !data/processed/.gitkeep
 
 # Model files (too large for git)
