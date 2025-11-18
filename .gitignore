@@ -69,10 +69,12 @@ results/*.csv
 !results/.gitkeep
 
 # Plots (optional - can be regenerated)
-plots/*.png
-plots/*.jpg
-plots/*.pdf
+plots/**/*.png
+plots/**/*.jpg
+plots/**/*.pdf
+plots/**/*.csv
 !plots/.gitkeep
+!plots/**/.gitkeep
 
 # macOS
 .DS_Store
