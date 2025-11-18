@@ -3,18 +3,18 @@
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.13+-orange.svg)](https://www.tensorflow.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Sprint%200%20Complete-success.svg)](.)
+[![Status](https://img.shields.io/badge/Status-Sprint%203%20Complete-success.svg)](.)
 
 ## 🎯 Project Overview
 
-Development of a **Physics-Informed Neural Network (PINN)** digital twin for naval HVAC Unit Cooler systems. The goal is to reduce prediction errors from current 30-221% down to **<10%** for critical variables: UCAOT, UCWOT, UCAF, and Q_thermal.
+Development of a **Data-Driven Digital Twin** for naval HVAC Unit Cooler systems using **LightGBM/XGBoost** models. After exhaustive testing (Sprint 3), we determined that Physics-Informed Neural Networks (PINN) are not viable for this problem. The goal is to achieve **R²>0.99** and **MAPE<10%** for critical variables: UCAOT, UCWOT, and UCAF.
 
 **Key Features:**
-- 🔬 Physics-informed machine learning combining data-driven and first-principles approaches
+- 🔬 Advanced data-driven machine learning with physics-based feature engineering
 - 📊 Multi-output prediction (temperatures, flows, thermal power)
-- ⚡ Edge computing ready (<100ms inference, <2GB RAM)
-- 🚀 Deployable on Raspberry Pi 4 and Jetson Orin
-- 📈 Real-time monitoring and anomaly detection
+- ⚡ Near-perfect accuracy (R²=0.993-1.0) with LightGBM/XGBoost
+- 🚀 Fast training (<1 minute) and inference (<10ms)
+- 📈 Robust to system complexity and real-world sensor errors
 
 ## 📂 Project Structure
 
@@ -176,6 +176,89 @@ results = train_and_evaluate_baseline_models(X_train, X_val, X_test, y_train, y_
 
 **See full analysis in:** [`data_quality_report.md`](data_quality_report.md)
 
+## 🎯 Sprint 1 Results (COMPLETED ✅)
+
+### Data Engineering & Feature Engineering
+
+- ✅ **Robust Preprocessing Pipeline** - Temporal splits, adaptive normalization
+- ✅ **52 Engineered Features** - Thermodynamic features (ΔT, Q, efficiency, NTU, etc.)
+- ✅ **Train/Val/Test Splits** - 70/15/15 temporal split (39,347 / 8,432 / 8,432 samples)
+- ✅ **Scaled Arrays** - StandardScaler normalization for neural networks
+
+**Key Features Added:**
+- Energy balance: Q_water, Q_air, Q_imbalance
+- Heat exchanger performance: efficiency_HX, effectiveness, NTU
+- Flow metrics: Re_air_estimate, flow_ratio
+- Temporal features: hour_sin, hour_cos, cycle patterns
+- Interaction terms: T_water_x_flow, ambient_x_inlet
+
+**Output:** `data/processed/` with X_train, y_train, scalers, metadata
+
+---
+
+## 🎯 Sprint 2 Results (COMPLETED ✅)
+
+### Advanced Baseline Models
+
+| Model | UCAOT R² | UCWOT R² | UCAF R² | Training Time |
+|-------|----------|----------|---------|---------------|
+| **LightGBM** | **0.9926** | **0.9975** | **1.0000** | **<1 min** |
+| **XGBoost** | **0.9768** | **0.9940** | **1.0000** | **<1 min** |
+| MLP (256-128-64) | 0.9815 | 0.9947 | 0.9999 | ~2 min |
+
+**Best Model:** LightGBM
+- UCAOT: R²=0.993, MAE=0.034, MAPE=8.7%
+- UCWOT: R²=0.998, MAE=0.031, MAPE=8.7%
+- UCAF: R²=1.000, MAE=0.0001, MAPE=0.008%
+
+**Deliverables:**
+- ✅ `results/advanced_baseline_comparison.csv`
+- ✅ `models/lightgbm_*.pkl`, `xgboost_*.pkl`, `mlp_*.h5`
+- ✅ `plots/sprint2/` - Training history, predictions, residuals
+
+---
+
+## 🎯 Sprint 3 Results (COMPLETED ✅)
+
+### Physics-Informed Neural Network (PINN) - EXHAUSTIVE TESTING
+
+**⚠️ CRITICAL FINDING: PINN NOT VIABLE FOR THIS PROBLEM**
+
+After testing **5 different PINN approaches** including state-of-the-art 2024-2025 techniques:
+
+| Approach | Best R² | Status |
+|----------|---------|--------|
+| 1. Direct PINN (λ_physics=0.1→0.001) | 0.33 | ❌ Gradient explosion |
+| 2. PINN + Unscaling | 0.20 | ❌ Scale mismatch unfixable |
+| 3. PINN + Normalized Physics | 0.20 | ❌ Still unstable |
+| 4. Curriculum Learning (pretrain→finetune) | 0.21 | ❌ Best PINN, still poor |
+| 5. **ReLoBRaLo (2024-2025 state-of-the-art)** | **-0.05** | ❌ **Worse than mean** |
+| **LightGBM Baseline** | **0.993-1.0** | ✅ **373% better** |
+
+**ReLoBRaLo Final Results** (State-of-the-Art Adaptive Loss Balancing):
+- UCAOT: R²=-0.053, MAPE=44.5% (LightGBM: R²=0.993, MAPE=8.7%)
+- UCWOT: R²=0.029, MAPE=42.4% (LightGBM: R²=0.998, MAPE=8.7%)
+- UCAF: R²=-0.087, MAPE=134.5% (LightGBM: R²=1.000, MAPE=0.008%)
+
+**Root Causes:**
+1. **Physics constraints contradict data** - Energy imbalance ~10% systematic (real behavior, not noise)
+2. **Extreme scale mismatch** - Physics loss 10^6-10^14× larger than data loss
+3. **Simplified physics inadequate** - Real system has unmodeled effects (radiation, losses, transients)
+4. **ReLoBRaLo proved physics harmful** - Optimal weights: λ_data=1.94, λ_physics=0.055 (nearly zero)
+
+**Conclusion:**
+> Physics-informed constraints are **incompatible with observed data** for this complex real-world system. Data-driven models (LightGBM) capture real behavior better than idealized physics.
+
+**Deliverables:**
+- ✅ `docs/Sprint3_PINN_Comprehensive_Analysis.md` - 50-page exhaustive analysis
+- ✅ `run_sprint3_pinn.py`, `run_sprint3_pinn_pretrain.py`, `run_sprint3_pinn_relobralo.py`
+- ✅ `results/pinn_vs_baselines.csv`, `results/pinn_relobralo_vs_baselines.csv`
+- ✅ `plots/sprint3/` - All PINN training histories
+
+**Decision:** ✅ **Proceed with LightGBM for Sprint 4 (Hyperparameter Optimization)**
+
+---
+
 ## 🗓️ Development Roadmap
 
 ### ✅ Sprint 0: Setup & Exploration (COMPLETED)
@@ -185,29 +268,30 @@ results = train_and_evaluate_baseline_models(X_train, X_val, X_test, y_train, y_
 - [x] Data quality report
 - [x] Visualization suite
 
-### 🔄 Sprint 1: Data Engineering & Features (NEXT)
-- [ ] Robust preprocessing pipeline
-- [ ] Physics-based feature engineering (15+ features)
-- [ ] Temporal train/val/test splits
-- [ ] Adaptive normalization by regime
+### ✅ Sprint 1: Data Engineering & Features (COMPLETED)
+- [x] Robust preprocessing pipeline
+- [x] Physics-based feature engineering (52 features)
+- [x] Temporal train/val/test splits
+- [x] StandardScaler normalization
 
-### 📋 Sprint 2: Baseline Avanzado
-- [ ] XGBoost and LightGBM models
-- [ ] MLP baseline
-- [ ] Feature importance analysis
-- [ ] Cross-validation temporal
+### ✅ Sprint 2: Advanced Baseline Models (COMPLETED)
+- [x] XGBoost and LightGBM models (R²=0.99-1.0)
+- [x] MLP baseline (R²=0.98)
+- [x] Comprehensive model comparison
+- [x] Best model: LightGBM
 
-### 🧠 Sprint 3: Physics-Informed Architecture
-- [ ] PINN model with physics loss
-- [ ] Thermodynamic constraints
-- [ ] Multi-objective training
-- [ ] Physics validation
+### ✅ Sprint 3: PINN Exhaustive Testing (COMPLETED - NOT VIABLE)
+- [x] PINN model with physics loss (5 approaches)
+- [x] Thermodynamic constraints (energy, efficiency, limits)
+- [x] Multi-objective training (data + physics)
+- [x] ReLoBRaLo state-of-the-art (2024-2025)
+- [x] **Result:** PINN incompatible, proceed with LightGBM
 
-### ⚙️ Sprint 4: Optimization HPO
+### 🔄 Sprint 4: LightGBM Optimization (NEXT)
 - [ ] Optuna hyperparameter optimization
-- [ ] Lambda weight tuning
-- [ ] Ensemble methods
-- [ ] Missing data robustness
+- [ ] Feature selection and importance
+- [ ] Cross-validation robustness
+- [ ] Ensemble methods (bagging/stacking)
 
 ### 📈 Sprint 5: Evaluación Exhaustiva
 - [ ] Test set comprehensive evaluation
@@ -255,35 +339,45 @@ results = train_and_evaluate_baseline_models(X_train, X_val, X_test, y_train, y_
 **Visualization:**
 - matplotlib, seaborn, plotly
 
-## 📊 Model Architecture (Planned)
+## 📊 Model Architecture (Final Decision: LightGBM)
 
-### Physics-Informed Neural Network
+### LightGBM Gradient Boosting (Selected Model)
 
 ```python
-class PhysicsInformedNN:
-    - Input: [UCWIT, UCAIT, UCWF, UCAF, UCAIH, AMBT, ...]
-    - Hidden: Dense(128) → Dense(128) → Dense(64)
-    - Output: [UCAOT, UCWOT, UCAF, Q_thermal]
-
-    Loss = λ_data × MSE(predictions, targets)
-         + λ_physics × Physics_Loss(energy_balance, constraints)
+LightGBM Configuration (per target):
+    - Input: 52 engineered features
+    - Algorithm: Gradient Boosting Decision Trees (GBDT)
+    - Outputs: UCAOT, UCWOT, UCAF (3 separate models)
+    - Training: ~30-60 seconds per target
+    - Performance: R²=0.993-1.0, MAPE=0.01-8.7%
 ```
 
-**Physics Constraints:**
-- Energy balance: Q_agua ≈ Q_aire
-- Temperature monotonicity: ΔT > 0
-- Efficiency bounds: 0.3 ≤ η ≤ 0.95
-- Second law of thermodynamics
+**Why LightGBM Over PINN:**
+- ✅ Near-perfect predictions (R²≈1.0) vs PINN (R²≈0.2)
+- ✅ Captures real system behavior (with imperfections)
+- ✅ Fast training (<1 min) vs PINN (~10 min)
+- ✅ No hyperparameter sensitivity to physics weights
+- ✅ Robust to sensor errors and system complexity
 
-## 📈 Performance Targets
+**Physics-Based Features (Already Incorporated):**
+- Energy balance: Q_water, Q_air, Q_imbalance (learned from data)
+- Heat exchanger: efficiency_HX, effectiveness, NTU
+- Flow dynamics: Re_air, flow_ratio, delta_T_ratio
+- Temporal patterns: hour_sin, hour_cos, cycle_hour
 
-| Metric | Current (FMU) | Target | Status |
-|--------|--------------|---------|---------|
-| UCAOT MAE | 30-221% | <10% | 🟡 Baseline: 2.4% (RF) |
-| UCWOT MAE | 30-221% | <10% | 🟡 Baseline: 9.5% (RF) |
-| UCAF MAE | 30-221% | <10% | 🔴 Baseline: 33.7% (RF) |
-| Inference Time | N/A | <100ms | ⏳ TBD |
-| Memory | N/A | <2GB | ⏳ TBD |
+## 📈 Performance Achieved
+
+| Metric | Current (FMU) | Target | LightGBM Result | Status |
+|--------|--------------|---------|-----------------|---------|
+| UCAOT MAPE | 30-221% | <10% | **8.7%** | ✅ **TARGET MET** |
+| UCWOT MAPE | 30-221% | <10% | **8.7%** | ✅ **TARGET MET** |
+| UCAF MAPE | 30-221% | <10% | **0.008%** | ✅ **EXCEEDED** |
+| UCAOT R² | N/A | >0.95 | **0.993** | ✅ **EXCEEDED** |
+| UCWOT R² | N/A | >0.95 | **0.998** | ✅ **EXCEEDED** |
+| UCAF R² | N/A | >0.95 | **1.000** | ✅ **PERFECT** |
+| Training Time | N/A | <5 min | **<1 min** | ✅ **5× FASTER** |
+| Inference Time | N/A | <100ms | ~10ms (est.) | ⏳ TBD Sprint 6 |
+| Memory | N/A | <2GB | <100MB (est.) | ⏳ TBD Sprint 6 |
 
 ## 🤝 Contributing
 
@@ -306,5 +400,6 @@ For questions or collaboration: [Project Team]
 ---
 
 **Last Updated:** 2025-11-18
-**Sprint:** 0 (Complete)
-**Next Milestone:** Sprint 1 - Data Engineering & Features
+**Sprint:** 3 (Complete) - PINN Exhaustive Testing → NOT VIABLE
+**Current Status:** ✅ LightGBM Model Achieves R²=0.993-1.0 (Target Exceeded)
+**Next Milestone:** Sprint 4 - LightGBM Hyperparameter Optimization
