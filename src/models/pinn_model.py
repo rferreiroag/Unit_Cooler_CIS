@@ -18,14 +18,31 @@ warnings.filterwarnings('ignore')
 class PhysicsLoss:
     """Physics-based loss functions for thermodynamic constraints"""
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: Optional[Dict] = None,
+                 X_mean: Optional[np.ndarray] = None,
+                 X_scale: Optional[np.ndarray] = None,
+                 y_mean: Optional[np.ndarray] = None,
+                 y_scale: Optional[np.ndarray] = None):
         """
         Initialize physics loss calculator
 
         Args:
             config: Configuration with physical constants
+            X_mean: Mean values for input features (for unscaling)
+            X_scale: Std values for input features (for unscaling)
+            y_mean: Mean values for target variables (for unscaling)
+            y_scale: Std values for target variables (for unscaling)
         """
         self.config = config or self._default_config()
+
+        # Store scaler parameters for unscaling
+        self.X_mean = tf.constant(X_mean, dtype=tf.float32) if X_mean is not None else None
+        self.X_scale = tf.constant(X_scale, dtype=tf.float32) if X_scale is not None else None
+        self.y_mean = tf.constant(y_mean, dtype=tf.float32) if y_mean is not None else None
+        self.y_scale = tf.constant(y_scale, dtype=tf.float32) if y_scale is not None else None
+
+        self.use_unscaling = (X_mean is not None and X_scale is not None and
+                             y_mean is not None and y_scale is not None)
 
     def _default_config(self) -> Dict:
         """Default physical constants"""
@@ -36,8 +53,40 @@ class PhysicsLoss:
             'rho_air': 1.2,          # kg/m³
             'efficiency_min': 0.3,   # Minimum realistic efficiency
             'efficiency_max': 0.95,  # Maximum realistic efficiency
-            'epsilon': 1e-6          # Small value for numerical stability
+            'epsilon': 1e-6,         # Small value for numerical stability
+            'Q_characteristic': 10000.0,  # Characteristic thermal power (W) for normalization
+            'T_characteristic': 10.0      # Characteristic temperature difference (K)
         }
+
+    def _unscale_inputs(self, inputs_scaled: tf.Tensor) -> tf.Tensor:
+        """
+        Unscale input features back to physical units
+
+        Args:
+            inputs_scaled: Scaled inputs [batch, features]
+
+        Returns:
+            Unscaled inputs in physical units
+        """
+        if not self.use_unscaling:
+            return inputs_scaled
+
+        return inputs_scaled * self.X_scale + self.X_mean
+
+    def _unscale_outputs(self, outputs_scaled: tf.Tensor) -> tf.Tensor:
+        """
+        Unscale predicted outputs back to physical units
+
+        Args:
+            outputs_scaled: Scaled predictions [batch, targets]
+
+        Returns:
+            Unscaled predictions in physical units
+        """
+        if not self.use_unscaling:
+            return outputs_scaled
+
+        return outputs_scaled * self.y_scale + self.y_mean
 
     def energy_balance_loss(self, inputs: tf.Tensor, predictions: tf.Tensor,
                            feature_indices: Dict) -> tf.Tensor:
@@ -51,35 +100,44 @@ class PhysicsLoss:
         These should be approximately equal (accounting for losses).
 
         Args:
-            inputs: Input features [batch, features]
-            predictions: Model predictions [batch, targets]
+            inputs: Input features [batch, features] (scaled)
+            predictions: Model predictions [batch, targets] (scaled)
             feature_indices: Dictionary mapping feature names to indices
 
         Returns:
             Energy balance loss (scalar)
         """
-        # Extract mass flow rates from inputs
-        mdot_water = inputs[:, feature_indices['mdot_water']]
-        mdot_air = inputs[:, feature_indices['mdot_air']]
+        # Unscale inputs and predictions to physical units
+        inputs_real = self._unscale_inputs(inputs)
+        predictions_real = self._unscale_outputs(predictions)
 
-        # Extract temperatures from inputs
-        UCWIT = inputs[:, feature_indices['UCWIT']]  # Water inlet temp
-        UCAIT = inputs[:, feature_indices['UCAIT']]  # Air inlet temp
+        # Extract mass flow rates from inputs (in physical units)
+        mdot_water = inputs_real[:, feature_indices['mdot_water']]
+        mdot_air = inputs_real[:, feature_indices['mdot_air']]
 
-        # Get predicted temperatures
-        UCAOT_pred = predictions[:, 0]  # Air outlet temp (predicted)
-        UCWOT_pred = predictions[:, 1]  # Water outlet temp (predicted)
+        # Extract temperatures from inputs (in physical units)
+        UCWIT = inputs_real[:, feature_indices['UCWIT']]  # Water inlet temp
+        UCAIT = inputs_real[:, feature_indices['UCAIT']]  # Air inlet temp
 
-        # Calculate thermal powers
+        # Get predicted temperatures (in physical units)
+        UCAOT_pred = predictions_real[:, 0]  # Air outlet temp (predicted)
+        UCWOT_pred = predictions_real[:, 1]  # Water outlet temp (predicted)
+
+        # Calculate thermal powers (in Watts)
         Q_water = mdot_water * self.config['Cp_water'] * (UCWIT - UCWOT_pred)
         Q_air = mdot_air * self.config['Cp_air'] * (UCAOT_pred - UCAIT)
 
-        # Energy balance: difference should be minimal
-        # Normalize by average to make scale-independent
-        Q_avg = (tf.abs(Q_water) + tf.abs(Q_air)) / 2.0 + self.config['epsilon']
-        energy_imbalance = tf.abs(Q_water - Q_air) / Q_avg
+        # Normalize by characteristic power to prevent gradient explosion
+        Q_char = self.config['Q_characteristic']
+        Q_water_norm = Q_water / Q_char
+        Q_air_norm = Q_air / Q_char
 
-        # Mean squared energy imbalance
+        # Energy balance: normalized difference
+        # Use relative error instead of absolute
+        Q_avg_norm = (tf.abs(Q_water_norm) + tf.abs(Q_air_norm)) / 2.0 + self.config['epsilon']
+        energy_imbalance = tf.abs(Q_water_norm - Q_air_norm) / Q_avg_norm
+
+        # Mean squared energy imbalance (now in reasonable range)
         loss = tf.reduce_mean(tf.square(energy_imbalance))
 
         return loss
@@ -92,21 +150,25 @@ class PhysicsLoss:
         Efficiency = Q_air / Q_water
 
         Args:
-            inputs: Input features
-            predictions: Model predictions
+            inputs: Input features (scaled)
+            predictions: Model predictions (scaled)
             feature_indices: Feature name to index mapping
 
         Returns:
             Efficiency constraint loss
         """
-        # Extract values
-        mdot_water = inputs[:, feature_indices['mdot_water']]
-        mdot_air = inputs[:, feature_indices['mdot_air']]
-        UCWIT = inputs[:, feature_indices['UCWIT']]
-        UCAIT = inputs[:, feature_indices['UCAIT']]
+        # Unscale to physical units
+        inputs_real = self._unscale_inputs(inputs)
+        predictions_real = self._unscale_outputs(predictions)
 
-        UCAOT_pred = predictions[:, 0]
-        UCWOT_pred = predictions[:, 1]
+        # Extract values (in physical units)
+        mdot_water = inputs_real[:, feature_indices['mdot_water']]
+        mdot_air = inputs_real[:, feature_indices['mdot_air']]
+        UCWIT = inputs_real[:, feature_indices['UCWIT']]
+        UCAIT = inputs_real[:, feature_indices['UCAIT']]
+
+        UCAOT_pred = predictions_real[:, 0]
+        UCWOT_pred = predictions_real[:, 1]
 
         # Calculate efficiency
         Q_water = mdot_water * self.config['Cp_water'] * (UCWIT - UCWOT_pred)
@@ -131,31 +193,38 @@ class PhysicsLoss:
         - Delta temperatures should be positive
 
         Args:
-            inputs: Input features
-            predictions: Model predictions
+            inputs: Input features (scaled)
+            predictions: Model predictions (scaled)
             feature_indices: Feature indices
 
         Returns:
             Monotonicity constraint loss
         """
-        UCWIT = inputs[:, feature_indices['UCWIT']]
-        UCAIT = inputs[:, feature_indices['UCAIT']]
+        # Unscale to physical units
+        inputs_real = self._unscale_inputs(inputs)
+        predictions_real = self._unscale_outputs(predictions)
 
-        UCAOT_pred = predictions[:, 0]
-        UCWOT_pred = predictions[:, 1]
+        UCWIT = inputs_real[:, feature_indices['UCWIT']]
+        UCAIT = inputs_real[:, feature_indices['UCAIT']]
+
+        UCAOT_pred = predictions_real[:, 0]
+        UCWOT_pred = predictions_real[:, 1]
 
         # For a cooling system (typical HVAC):
+        # Normalize by characteristic temperature to prevent large gradients
+        T_char = self.config['T_characteristic']
+
         # 1. Water temperature should decrease OR stay same (if no heat transfer)
-        delta_T_water = UCWIT - UCWOT_pred
+        delta_T_water = (UCWIT - UCWOT_pred) / T_char
         water_violation = tf.nn.relu(-delta_T_water)  # Penalty if delta < 0
 
         # 2. Air outlet should not be hotter than water inlet
-        temp_limit_violation = tf.nn.relu(UCAOT_pred - UCWIT)
+        temp_limit_violation = tf.nn.relu((UCAOT_pred - UCWIT) / T_char)
 
         # 3. Air temperature delta should be reasonable (not negative in typical operation)
-        delta_T_air = UCAOT_pred - UCAIT
-        # Allow some tolerance for measurement noise
-        air_violation = tf.nn.relu(-delta_T_air - 1.0)  # Penalty if delta < -1°C
+        delta_T_air = (UCAOT_pred - UCAIT) / T_char
+        # Allow some tolerance for measurement noise (normalized)
+        air_violation = tf.nn.relu(-delta_T_air - 0.1)  # Penalty if delta < -1°C (normalized)
 
         loss = tf.reduce_mean(
             tf.square(water_violation) +
@@ -170,30 +239,35 @@ class PhysicsLoss:
         Ensure predictions stay within physically reasonable ranges
 
         Args:
-            predictions: Model predictions [UCAOT, UCWOT, UCAF]
+            predictions: Model predictions [UCAOT, UCWOT, UCAF] (scaled)
 
         Returns:
             Physical limits violation loss
         """
-        # Temperature limits (scaled values, assuming normalization around 0)
-        # These limits depend on your scaling, adjust accordingly
-        temp_lower = -5.0  # In scaled space
-        temp_upper = 5.0   # In scaled space
+        # Unscale to physical units
+        predictions_real = self._unscale_outputs(predictions)
 
-        # UCAOT and UCWOT should be within reasonable bounds
+        # Normalize by characteristic scales
+        T_char = self.config['T_characteristic']
+
+        # Physical temperature limits (°C)
+        temp_lower = -10.0   # Minimum reasonable temperature
+        temp_upper = 80.0    # Maximum reasonable temperature (well below boiling)
+
+        # UCAOT (air outlet temp) should be within reasonable bounds (normalized)
         ucaot_violation = (
-            tf.nn.relu(temp_lower - predictions[:, 0]) +
-            tf.nn.relu(predictions[:, 0] - temp_upper)
+            tf.nn.relu((temp_lower - predictions_real[:, 0]) / T_char) +
+            tf.nn.relu((predictions_real[:, 0] - temp_upper) / T_char)
         )
 
+        # UCWOT (water outlet temp) should be within reasonable bounds (normalized)
         ucwot_violation = (
-            tf.nn.relu(temp_lower - predictions[:, 1]) +
-            tf.nn.relu(predictions[:, 1] - temp_upper)
+            tf.nn.relu((temp_lower - predictions_real[:, 1]) / T_char) +
+            tf.nn.relu((predictions_real[:, 1] - temp_upper) / T_char)
         )
 
-        # UCAF (air flow) should be non-negative (in scaled space, depends on scaling)
-        # Assuming scaling centers around 0
-        flow_violation = tf.nn.relu(-predictions[:, 2] - 3.0)  # Allow some negative in scaled space
+        # UCAF (air flow) should be non-negative (normalized by characteristic flow ~1000)
+        flow_violation = tf.nn.relu(-predictions_real[:, 2] / 1000.0)
 
         loss = tf.reduce_mean(
             0.1 * tf.square(ucaot_violation) +
@@ -212,6 +286,10 @@ class PINN(keras.Model):
                  dropout: float = 0.2,
                  feature_indices: Optional[Dict] = None,
                  physics_config: Optional[Dict] = None,
+                 X_mean: Optional[np.ndarray] = None,
+                 X_scale: Optional[np.ndarray] = None,
+                 y_mean: Optional[np.ndarray] = None,
+                 y_scale: Optional[np.ndarray] = None,
                  lambda_data: float = 1.0,
                  lambda_physics: float = 0.1,
                  lambda_efficiency: float = 0.05,
@@ -227,6 +305,10 @@ class PINN(keras.Model):
             dropout: Dropout rate
             feature_indices: Dictionary mapping feature names to indices
             physics_config: Physics constants configuration
+            X_mean: Mean values for input features (for unscaling)
+            X_scale: Std values for input features (for unscaling)
+            y_mean: Mean values for target variables (for unscaling)
+            y_scale: Std values for target variables (for unscaling)
             lambda_data: Weight for data loss
             lambda_physics: Weight for physics loss (energy balance)
             lambda_efficiency: Weight for efficiency constraint
@@ -246,8 +328,8 @@ class PINN(keras.Model):
         self.lambda_monotonicity = lambda_monotonicity
         self.lambda_limits = lambda_limits
 
-        # Physics loss calculator
-        self.physics_loss_calc = PhysicsLoss(physics_config)
+        # Physics loss calculator with scaler parameters
+        self.physics_loss_calc = PhysicsLoss(physics_config, X_mean, X_scale, y_mean, y_scale)
 
         # Build network layers
         self.hidden = []
@@ -406,6 +488,10 @@ def create_pinn_model(n_features: int, feature_names: List[str],
                       n_targets: int = 3,
                       hidden_layers: List[int] = [128, 128, 64, 32],
                       dropout: float = 0.2,
+                      X_mean: Optional[np.ndarray] = None,
+                      X_scale: Optional[np.ndarray] = None,
+                      y_mean: Optional[np.ndarray] = None,
+                      y_scale: Optional[np.ndarray] = None,
                       lambda_data: float = 1.0,
                       lambda_physics: float = 0.1) -> PINN:
     """
@@ -417,6 +503,10 @@ def create_pinn_model(n_features: int, feature_names: List[str],
         n_targets: Number of targets
         hidden_layers: Network architecture
         dropout: Dropout rate
+        X_mean: Mean values for input features (for unscaling in physics loss)
+        X_scale: Std values for input features (for unscaling in physics loss)
+        y_mean: Mean values for target variables (for unscaling in physics loss)
+        y_scale: Std values for target variables (for unscaling in physics loss)
         lambda_data: Data loss weight
         lambda_physics: Physics loss weight
 
@@ -443,14 +533,17 @@ def create_pinn_model(n_features: int, feature_names: List[str],
         hidden_layers=hidden_layers,
         dropout=dropout,
         feature_indices=feature_indices,
+        X_mean=X_mean,
+        X_scale=X_scale,
+        y_mean=y_mean,
+        y_scale=y_scale,
         lambda_data=lambda_data,
         lambda_physics=lambda_physics
     )
 
-    # Compile
-    model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.001)
-    )
+    # Compile with gradient clipping for stability
+    optimizer = keras.optimizers.Adam(learning_rate=0.001, clipnorm=1.0)
+    model.compile(optimizer=optimizer)
 
     print(f"\n{'='*80}")
     print(" PINN MODEL CREATED")

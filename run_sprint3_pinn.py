@@ -46,6 +46,12 @@ def load_processed_data():
     X_test = np.load(data_dir / 'X_test_scaled.npy').astype(np.float32)
     y_test = np.load(data_dir / 'y_test_scaled.npy').astype(np.float32)
 
+    # Load scaler parameters for physics loss unscaling
+    X_mean = np.load(data_dir / 'X_scaler_mean.npy').astype(np.float32)
+    X_scale = np.load(data_dir / 'X_scaler_scale.npy').astype(np.float32)
+    y_mean = np.load(data_dir / 'y_scaler_mean.npy').astype(np.float32)
+    y_scale = np.load(data_dir / 'y_scaler_scale.npy').astype(np.float32)
+
     # Load metadata
     with open(data_dir / 'metadata.json', 'r') as f:
         metadata = json.load(f)
@@ -56,6 +62,7 @@ def load_processed_data():
     print(f"  Test:  {X_test.shape}")
     print(f"  Features: {len(metadata['feature_names'])}")
     print(f"  Targets: {metadata['target_names']}")
+    print(f"  Scaler parameters loaded for physics loss unscaling")
 
     return {
         'X_train': X_train,
@@ -64,6 +71,10 @@ def load_processed_data():
         'y_val': y_val,
         'X_test': X_test,
         'y_test': y_test,
+        'X_mean': X_mean,
+        'X_scale': X_scale,
+        'y_mean': y_mean,
+        'y_scale': y_scale,
         'feature_names': metadata['feature_names'],
         'target_names': metadata['target_names']
     }
@@ -91,16 +102,26 @@ def train_pinn(data_dict, config: dict):
     feature_names = data_dict['feature_names']
     target_names = data_dict['target_names']
 
+    # Scaler parameters for physics loss
+    X_mean = data_dict['X_mean']
+    X_scale = data_dict['X_scale']
+    y_mean = data_dict['y_mean']
+    y_scale = data_dict['y_scale']
+
     n_features = X_train.shape[1]
     n_targets = y_train.shape[1]
 
-    # Create model
+    # Create model with scaler parameters
     model = create_pinn_model(
         n_features=n_features,
         feature_names=feature_names,
         n_targets=n_targets,
         hidden_layers=config.get('hidden_layers', [128, 128, 64, 32]),
         dropout=config.get('dropout', 0.2),
+        X_mean=X_mean,
+        X_scale=X_scale,
+        y_mean=y_mean,
+        y_scale=y_scale,
         lambda_data=config.get('lambda_data', 1.0),
         lambda_physics=config.get('lambda_physics', 0.1)
     )
@@ -311,11 +332,12 @@ def main():
     data_dict = load_processed_data()
 
     # PINN configuration
+    # Reduced lambda_physics to 0.001 and added normalization in physics loss
     pinn_config = {
         'hidden_layers': [128, 128, 64, 32],
         'dropout': 0.2,
         'lambda_data': 1.0,
-        'lambda_physics': 0.1,
+        'lambda_physics': 0.001,  # Reduced from 0.01 after normalization
         'epochs': 200,
         'batch_size': 64
     }
