@@ -1,0 +1,47 @@
+[
+  {
+    "model_name": "lightgbm_UCAOT",
+    "original_size_mb": 0.873,
+    "onnx_size_mb": 0.653,
+    "size_ratio": 0.748,
+    "n_features": 52,
+    "input_name": "float_input",
+    "output_name": "variable",
+    "input_shape": "[None, 52]",
+    "output_shape": "[None, 1]",
+    "max_prediction_diff": 3.629436168273159e-08,
+    "validation_status": "PASSED",
+    "opset_version": 12,
+    "target": "UCAOT"
+  },
+  {
+    "model_name": "lightgbm_UCWOT",
+    "original_size_mb": 0.854,
+    "onnx_size_mb": 0.651,
+    "size_ratio": 0.762,
+    "n_features": 52,
+    "input_name": "float_input",
+    "output_name": "variable",
+    "input_shape": "[None, 52]",
+    "output_shape": "[None, 1]",
+    "max_prediction_diff": 1.9053210231767537e-07,
+    "validation_status": "PASSED",
+    "opset_version": 12,
+    "target": "UCWOT"
+  },
+  {
+    "model_name": "lightgbm_UCAF",
+    "original_size_mb": 0.412,
+    "onnx_size_mb": 0.29,
+    "size_ratio": 0.705,
+    "n_features": 52,
+    "input_name": "float_input",
+    "output_name": "variable",
+    "input_shape": "[None, 52]",
+    "output_shape": "[None, 1]",
+    "max_prediction_diff": 1.9400106876510392e-07,
+    "validation_status": "PASSED",
+    "opset_version": 12,
+    "target": "UCAF"
+  }
+]
