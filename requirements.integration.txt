@@ -1,0 +1,22 @@
+# Integration requirements for Sprint 7: Real-time Integration
+# Dashboard, Monitoring, MQTT, BACnet
+
+# Dashboard
+streamlit>=1.28.0
+plotly>=5.17.0
+
+# Drift Detection
+scipy>=1.11.0
+
+# MQTT Integration
+paho-mqtt>=1.6.1
+
+# BACnet Integration (optional)
+# BAC0>=22.9.21
+# bacpypes>=0.18.6
+
+# Monitoring & Logging
+prometheus-client>=0.18.0  # Optional: Prometheus metrics
+
+# Additional utilities
+python-dotenv>=1.0.0  # For configuration management
