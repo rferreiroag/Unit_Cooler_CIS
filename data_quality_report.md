@@ -1,5 +1,5 @@
 # Data Quality Report
-## Physics-Informed Digital Twin for Naval HVAC Unit Cooler
+## HVAC Unit Cooler Digital Twin
 
 **Date:** 2025-11-18
 **Dataset:** datos_combinados_entrenamiento_20251118_105234.csv
