@@ -199,7 +199,7 @@ def main():
 
     print(f"\n{'#'*80}")
     print(f"# SPRINT 6: EDGE DEPLOYMENT PIPELINE")
-    print(f"# Physics-Informed Digital Twin for Naval HVAC Unit Cooler")
+    print(f"# HVAC Unit Cooler Digital Twin")
     print(f"{'#'*80}\n")
 
     # Check dependencies

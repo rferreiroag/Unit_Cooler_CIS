@@ -5,7 +5,7 @@
 **Version**: 1.0
 **Date**: 2025-11-18
 **Classification**: Internal/Restricted
-**Project**: Physics-Informed Digital Twin for Naval HVAC Systems
+**Project**: HVAC Unit Cooler Digital Twin
 
 ---
 
