@@ -1,0 +1,55 @@
+# Lightweight Dockerfile for Edge Devices (Raspberry Pi 4, Jetson Orin)
+# ARM64/ARMv7 compatible
+
+FROM python:3.10-slim-bullseye
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    MODEL_TYPE=onnx
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements (minimal for edge)
+COPY requirements.edge.txt requirements.txt
+
+# Install minimal Python dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir \
+    numpy==1.24.3 \
+    fastapi==0.104.1 \
+    uvicorn[standard]==0.24.0 \
+    pydantic==2.5.0 \
+    onnxruntime==1.16.3 \
+    psutil==5.9.6
+
+# Copy only necessary files
+COPY api/ /app/api/
+COPY models/*.onnx /app/models/ 2>/dev/null || :
+COPY deployment/onnx/*.onnx /app/models/ 2>/dev/null || :
+COPY data/processed/X_scaler*.npy /app/data/processed/ 2>/dev/null || :
+COPY data/processed/y_scaler*.npy /app/data/processed/ 2>/dev/null || :
+COPY data/processed/metadata.json /app/data/processed/ 2>/dev/null || :
+
+# Create non-root user
+RUN useradd -m -u 1000 hvac && \
+    chown -R hvac:hvac /app
+
+USER hvac
+
+# Expose port
+EXPOSE 8000
+
+# Minimal health check
+HEALTHCHECK --interval=60s --timeout=5s --start-period=10s --retries=2 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"
+
+# Run with single worker (edge devices have limited resources)
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--log-level", "warning"]

@@ -1,0 +1,18 @@
+# Minimal requirements for edge deployment (Raspberry Pi 4, Jetson Orin)
+# Optimized for low resource consumption
+
+# Core dependencies
+numpy>=1.24.0,<2.0.0
+onnxruntime>=1.16.0  # ONNX inference
+psutil>=5.9.0        # System monitoring
+
+# API dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# Optional: TensorFlow Lite (uncomment if needed)
+# tensorflow>=2.13.0
+
+# Optional: Monitoring (uncomment if needed)
+# prometheus-client>=0.18.0

@@ -1,0 +1,69 @@
+{
+  "timestamp": "2025-11-19T07:23:36.306744",
+  "summary": {
+    "overall_status": "CRITICAL",
+    "total_features": 5,
+    "critical_features": 5,
+    "warning_features": 0,
+    "stable_features": 0,
+    "drift_percentage": 100.0
+  },
+  "feature_drift": {
+    "UCWIT": {
+      "status": "CRITICAL",
+      "psi": 2.5517,
+      "ks_statistic": 0.2463,
+      "ks_pvalue": 0.0,
+      "reference_mean": 20.2176,
+      "current_mean": 19.4334,
+      "mean_change_pct": -3.88,
+      "reference_std": 8.7441,
+      "current_std": 5.8115
+    },
+    "UCAIT": {
+      "status": "CRITICAL",
+      "psi": 3.5132,
+      "ks_statistic": 0.4412,
+      "ks_pvalue": 0.0,
+      "reference_mean": 23.4367,
+      "current_mean": 27.4602,
+      "mean_change_pct": 17.17,
+      "reference_std": 5.638,
+      "current_std": 3.8247
+    },
+    "UCWF": {
+      "status": "CRITICAL",
+      "psi": 1.2708,
+      "ks_statistic": 0.1506,
+      "ks_pvalue": 0.0,
+      "reference_mean": 650.2384,
+      "current_mean": 565.7357,
+      "mean_change_pct": -13.0,
+      "reference_std": 992.3262,
+      "current_std": 472.9024
+    },
+    "AMBT": {
+      "status": "CRITICAL",
+      "psi": 2.947,
+      "ks_statistic": 0.4077,
+      "ks_pvalue": 0.0,
+      "reference_mean": 25.4258,
+      "current_mean": 29.7773,
+      "mean_change_pct": 17.11,
+      "reference_std": 6.137,
+      "current_std": 7.5891
+    },
+    "UCTSP": {
+      "status": "CRITICAL",
+      "psi": 5.1288,
+      "ks_statistic": 0.4387,
+      "ks_pvalue": 0.0,
+      "reference_mean": 33.6348,
+      "current_mean": 35.6356,
+      "mean_change_pct": 5.95,
+      "reference_std": 13.2316,
+      "current_std": 2.0673
+    }
+  },
+  "prediction_drift": null
+}
