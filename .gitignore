@@ -62,8 +62,8 @@ models/*.keras
 models/*.weights.h5
 !models/.gitkeep
 
-# FMU files and resources (too large for git)
-*.fmu
+# FMU files and resources
+# Allow deployment FMUs, exclude only large resources and temp files
 deployment/fmu/resources/*.pkl
 deployment/fmu/temp_fmu/
 
