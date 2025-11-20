@@ -151,8 +151,9 @@ if PYTHONFMU_AVAILABLE:
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
 
-            # Load model and scaler
-            resources_dir = Path(__file__).parent / "resources"
+            # Load model and scaler from FMU resources directory
+            # Use self.resources which points to the FMU's resources folder
+            resources_dir = Path(self.resources) if hasattr(self, 'resources') else Path(__file__).parent / "resources"
 
             try:
                 model_data = joblib.load(resources_dir / "lightgbm_model_no_leakage.pkl")
@@ -161,6 +162,8 @@ if PYTHONFMU_AVAILABLE:
                 print(f"✓ Loaded models from {resources_dir}")
             except Exception as e:
                 print(f"Warning: Could not load models: {e}")
+                print(f"  Resources dir: {resources_dir}")
+                print(f"  Resources exists: {resources_dir.exists() if isinstance(resources_dir, Path) else 'N/A'}")
                 self.models = None
                 self.scaler = None
 
