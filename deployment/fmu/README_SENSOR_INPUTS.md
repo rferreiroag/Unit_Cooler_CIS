@@ -6,6 +6,40 @@ Esta FMU acepta **solo 20 variables de sensores** como entrada y predice 3 salid
 
 **Diferencia clave**: La FMU calcula internamente las 19 features derivadas, sin requerir los targets como entrada. Esto garantiza que funcione en producción en tiempo real.
 
+**Estado**: ✅ Probado exhaustivamente en Linux y Windows. Sin errores de encoding ni dependencias faltantes.
+
+## Requisitos del Sistema
+
+### Software Requerido
+
+1. **Python 3.7 o superior**
+   - Descargar de: https://www.python.org/downloads/
+   - **IMPORTANTE Windows**: Marcar "Add Python to PATH" durante instalación
+
+2. **Paquetes Python** (instalar en el sistema donde se ejecuta la FMU)
+   ```bash
+   pip install numpy scikit-learn lightgbm joblib
+   ```
+
+3. **Herramienta de simulación FMI 2.0**
+   - FMPy (Python): `pip install fmpy`
+   - Dymola/Modelica
+   - MATLAB/Simulink (con FMI Toolbox)
+   - OpenModelica
+   - Cualquier herramienta compatible con FMI 2.0 Co-Simulation
+
+### Verificar Instalación
+
+**Linux/Mac:**
+```bash
+python3 -c "import numpy, sklearn, lightgbm, joblib; print('OK: All packages installed')"
+```
+
+**Windows:**
+```cmd
+python -c "import numpy, sklearn, lightgbm, joblib; print('OK: All packages installed')"
+```
+
 ## Especificaciones
 
 ### Entradas (20 sensores)
@@ -64,8 +98,11 @@ La FMU computa internamente 19 features derivadas:
 
 ## Archivos FMU
 
-- `HVACUnitCoolerFMU.fmu` (0.64 MB) - FMU con sensores (RECOMENDADA)
-- `HVACUnitCooler.fmu` (2.78 MB) - FMU legacy (no usar)
+- **`HVACUnitCoolerFMU.fmu`** (2.39 MB) - FMU principal (USAR ESTA)
+  - Contiene modelos limpios sin dependencias de módulos personalizados
+  - Incluye correcciones de encoding para Windows
+  - Probada en Linux y Windows
+  - Todos los recursos (model, scaler, metadata) empaquetados internamente
 
 ## Uso
 
@@ -198,15 +235,53 @@ deployment/fmu/
 
 ## Troubleshooting
 
-### Error: "Model file not found"
-Solución: Ejecuta `python train_model_no_leakage.py` primero
+### ✅ Error: "No module named 'data.data_splits'" (RESUELTO)
+**Síntoma**: FMU falla al cargar con error de módulo faltante
+**Causa**: El scaler.pkl contenía referencias a módulos personalizados
+**Solución**: Usamos modelo y scaler limpios (clean_model_for_fmu.py, clean_scaler_for_fmu.py)
+**Estado**: Corregido en versión actual
 
-### Error: "pythonfmu not found"
-Solución: `pip install pythonfmu`
+### ✅ Error: "UnicodeEncodeError" o "charmap codec" en Windows (RESUELTO)
+**Síntoma**: Error al imprimir mensajes con caracteres especiales (✓, ✗, ⚠)
+**Causa**: Windows usa codificación 'charmap' por defecto
+**Solución**: Eliminados todos los caracteres Unicode, agregado manejo de encoding
+**Estado**: Corregido en versión actual
+
+### ✅ Error: Modelos no se cargan (recursos no encontrados) (RESUELTO)
+**Síntoma**: FMU retorna valores por defecto (20.0, 20.0, 1000.0)
+**Causa**: Los archivos .pkl no estaban incluidos en el FMU
+**Solución**: Agregados como argumentos posicionales a pythonfmu build
+**Estado**: Corregido en versión actual
+
+### Error: "Could not load models" (Paquetes faltantes)
+**Síntoma**: FMU no puede cargar el modelo
+**Causa**: Falta instalar paquetes de Python
+**Solución**:
+```bash
+pip install numpy scikit-learn lightgbm joblib
+```
 
 ### FMU no genera salidas correctas
-- Verifica que las 20 entradas de sensores estén conectadas
-- Comprueba rangos de valores razonables (ej: temperaturas 15-35°C)
+**Verificar**:
+- Las 20 entradas de sensores están conectadas
+- Los valores están en rangos razonables:
+  - Temperaturas: 15-35°C
+  - Flujos: 0-300 L/min
+  - Presiones: 0-50 bar
+- Python 3.7+ está instalado
+- Todos los paquetes Python están instalados
+
+### Probar la FMU
+
+**Test rápido (Linux/Mac):**
+```bash
+python3 test_fmu_comprehensive.py
+```
+
+**Test rápido (Windows):**
+```cmd
+python test_fmu_comprehensive.py
+```
 
 ## Referencias
 

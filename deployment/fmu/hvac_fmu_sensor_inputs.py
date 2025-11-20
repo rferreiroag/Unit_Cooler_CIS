@@ -19,10 +19,26 @@ Internal processing:
   - Makes predictions
   - Returns outputs
 
+Requirements:
+  - Python 3.7+
+  - numpy
+  - scikit-learn
+  - lightgbm
+  - joblib
+
 To build FMU:
     pip install pythonfmu
     pythonfmu build -f deployment/fmu/hvac_fmu_sensor_inputs.py
 """
+
+import sys
+import os
+
+# Set encoding for Windows compatibility
+if sys.platform == 'win32':
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
 
 import numpy as np
 import joblib
@@ -156,14 +172,34 @@ if PYTHONFMU_AVAILABLE:
             resources_dir = Path(self.resources) if hasattr(self, 'resources') else Path(__file__).parent / "resources"
 
             try:
-                model_data = joblib.load(resources_dir / "lightgbm_model_no_leakage.pkl")
+                # Try to load models with error handling
+                model_path = resources_dir / "lightgbm_model_no_leakage.pkl"
+                scaler_path = resources_dir / "scaler.pkl"
+
+                if not model_path.exists():
+                    raise FileNotFoundError("Model file not found: {}".format(model_path))
+                if not scaler_path.exists():
+                    raise FileNotFoundError("Scaler file not found: {}".format(scaler_path))
+
+                model_data = joblib.load(str(model_path))
                 self.models = model_data['models']
-                self.scaler = joblib.load(resources_dir / "scaler.pkl")
-                print(f"✓ Loaded models from {resources_dir}")
+                self.scaler = joblib.load(str(scaler_path))
+                print("[OK] Loaded models from: {}".format(resources_dir))
+            except ImportError as e:
+                print("ERROR: Missing Python package: {}".format(e))
+                print("  Install required packages:")
+                print("  pip install numpy scikit-learn lightgbm joblib")
+                self.models = None
+                self.scaler = None
             except Exception as e:
-                print(f"Warning: Could not load models: {e}")
-                print(f"  Resources dir: {resources_dir}")
-                print(f"  Resources exists: {resources_dir.exists() if isinstance(resources_dir, Path) else 'N/A'}")
+                print("WARNING: Could not load models: {}".format(e))
+                print("  Resources dir: {}".format(resources_dir))
+                print("  Model path exists: {}".format(
+                    (resources_dir / "lightgbm_model_no_leakage.pkl").exists()
+                    if isinstance(resources_dir, Path) else 'N/A'))
+                print("  Scaler path exists: {}".format(
+                    (resources_dir / "scaler.pkl").exists()
+                    if isinstance(resources_dir, Path) else 'N/A'))
                 self.models = None
                 self.scaler = None
 
@@ -278,11 +314,11 @@ if __name__ == "__main__":
     print("="*80)
 
     if not PYTHONFMU_AVAILABLE:
-        print("\n⚠ pythonfmu not installed")
+        print("\n[WARNING] pythonfmu not installed")
         print("  Install with: pip install pythonfmu")
         print("  Then build FMU with: pythonfmu build -f deployment/fmu/hvac_fmu_sensor_inputs.py")
     else:
-        print("\n✓ pythonfmu available")
+        print("\n[OK] pythonfmu available")
         print("  Build FMU with: pythonfmu build -f deployment/fmu/hvac_fmu_sensor_inputs.py")
 
     # Test feature computer
@@ -302,8 +338,8 @@ if __name__ == "__main__":
     }
 
     features = fc.compute_features(test_sensors)
-    print(f"✓ Computed {len(features)} features from {len(test_sensors)} sensors")
-    print(f"  Input sensors: {len([k for k in test_sensors.keys()])}")
-    print(f"  Derived features: {len(features) - 20}")
-    print(f"\n✓ FMU ready for export")
+    print("[OK] Computed {} features from {} sensors".format(len(features), len(test_sensors)))
+    print("  Input sensors: {}".format(len([k for k in test_sensors.keys()])))
+    print("  Derived features: {}".format(len(features) - 20))
+    print("\n[OK] FMU ready for export")
     print("="*80)
