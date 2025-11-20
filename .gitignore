@@ -49,6 +49,8 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/processed_no_leakage/*
+!data/processed_no_leakage/.gitkeep
 
 # Model files (too large for git)
 models/*.h5
