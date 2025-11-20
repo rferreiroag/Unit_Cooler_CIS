@@ -84,8 +84,15 @@ try:
     original_dir = os.getcwd()
     os.chdir(fmu_dir)
 
+    # Build FMU with resources explicitly included
     result = subprocess.run(
-        ["pythonfmu", "build", "-f", "hvac_fmu_sensor_inputs.py"],
+        [
+            "pythonfmu", "build",
+            "-f", "hvac_fmu_sensor_inputs.py",
+            "resources/lightgbm_model_no_leakage.pkl",
+            "resources/scaler.pkl",
+            "resources/metadata.json"
+        ],
         capture_output=True,
         text=True,
         timeout=120
