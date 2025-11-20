@@ -62,6 +62,11 @@ models/*.keras
 models/*.weights.h5
 !models/.gitkeep
 
+# FMU files and resources (too large for git)
+*.fmu
+deployment/fmu/resources/*.pkl
+deployment/fmu/temp_fmu/
+
 # Logs
 logs/
 *.log
