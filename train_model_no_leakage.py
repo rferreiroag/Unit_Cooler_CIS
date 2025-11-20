@@ -84,14 +84,17 @@ print(f"\n✓ All models trained")
 print("\n[3/4] Saving models...")
 Path('models').mkdir(exist_ok=True)
 
+# Save models in a clean format without module dependencies
+# Use booster_ to get the underlying LightGBM booster (more portable)
 model_data = {
     'models': models,
-    'metadata': metadata,
     'results': results,
-    'params': lgbm_params
+    'params': lgbm_params,
+    'target_names': target_names
 }
 
-joblib.dump(model_data, 'models/lightgbm_model_no_leakage.pkl')
+# Save using protocol=4 for better compatibility
+joblib.dump(model_data, 'models/lightgbm_model_no_leakage.pkl', protocol=4)
 print(f"✓ Saved to models/lightgbm_model_no_leakage.pkl")
 
 # Summary

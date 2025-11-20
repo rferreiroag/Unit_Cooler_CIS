@@ -29,23 +29,24 @@ fmu_dir = Path("deployment/fmu")
 resources_dir = fmu_dir / "resources"
 resources_dir.mkdir(parents=True, exist_ok=True)
 
-# Copy model
-model_src = Path("models/lightgbm_model_no_leakage.pkl")
+# Copy clean model (without module dependencies)
+model_src = Path("models/lightgbm_model_no_leakage_clean.pkl")
 if model_src.exists():
     shutil.copy(model_src, resources_dir / "lightgbm_model_no_leakage.pkl")
-    print(f"  ✓ Copied {model_src}")
+    print(f"  ✓ Copied {model_src} -> lightgbm_model_no_leakage.pkl")
 else:
-    print(f"  ✗ Model not found: {model_src}")
-    print("    Run: python train_model_no_leakage.py")
+    print(f"  ✗ Clean model not found: {model_src}")
+    print("    Run: python clean_model_for_fmu.py")
     exit(1)
 
-# Copy scaler
-scaler_src = Path("data/processed_no_leakage/scaler.pkl")
+# Copy clean scaler (without module dependencies)
+scaler_src = Path("data/processed_no_leakage/scaler_clean.pkl")
 if scaler_src.exists():
     shutil.copy(scaler_src, resources_dir / "scaler.pkl")
-    print(f"  ✓ Copied {scaler_src}")
+    print(f"  ✓ Copied {scaler_src} -> scaler.pkl")
 else:
-    print(f"  ✗ Scaler not found: {scaler_src}")
+    print(f"  ✗ Clean scaler not found: {scaler_src}")
+    print("    Run: python clean_scaler_for_fmu.py")
     exit(1)
 
 # Copy metadata
