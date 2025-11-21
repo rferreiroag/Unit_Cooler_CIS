@@ -25,9 +25,9 @@ MANIFEST
 
 # Generated packages
 *.zip
-!validation_data_package.zip
-!test_data_package.zip
+!deployment/packages/*.zip
 *.tar.gz
+!deployment/packages/*.tar.gz
 *.tar
 
 # Virtual environments
