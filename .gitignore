@@ -23,6 +23,11 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Generated packages
+*.zip
+*.tar.gz
+*.tar
+
 # Virtual environments
 venv/
 env/
