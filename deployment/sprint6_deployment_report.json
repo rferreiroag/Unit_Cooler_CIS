@@ -1,0 +1,120 @@
+{
+  "sprint": "Sprint 6: Edge Deployment",
+  "timestamp": "2025-11-21 11:02:10",
+  "execution_times": {
+    "ONNX Export": 0.24002504348754883,
+    "TensorFlow Lite Export": 0.22760605812072754,
+    "Edge Device Benchmark": 0.22803568840026855
+  },
+  "total_time_seconds": 0.6970999240875244,
+  "steps_completed": 0,
+  "steps_failed": 3,
+  "models_exported": {
+    "onnx": [
+      {
+        "model_name": "lightgbm_UCAOT",
+        "original_size_mb": 0.873,
+        "onnx_size_mb": 0.653,
+        "size_ratio": 0.748,
+        "n_features": 52,
+        "input_name": "float_input",
+        "output_name": "variable",
+        "input_shape": "[None, 52]",
+        "output_shape": "[None, 1]",
+        "max_prediction_diff": 3.629436168273159e-08,
+        "validation_status": "PASSED",
+        "opset_version": 12,
+        "target": "UCAOT"
+      },
+      {
+        "model_name": "lightgbm_UCWOT",
+        "original_size_mb": 0.854,
+        "onnx_size_mb": 0.651,
+        "size_ratio": 0.762,
+        "n_features": 52,
+        "input_name": "float_input",
+        "output_name": "variable",
+        "input_shape": "[None, 52]",
+        "output_shape": "[None, 1]",
+        "max_prediction_diff": 1.9053210231767537e-07,
+        "validation_status": "PASSED",
+        "opset_version": 12,
+        "target": "UCWOT"
+      },
+      {
+        "model_name": "lightgbm_UCAF",
+        "original_size_mb": 0.412,
+        "onnx_size_mb": 0.29,
+        "size_ratio": 0.705,
+        "n_features": 52,
+        "input_name": "float_input",
+        "output_name": "variable",
+        "input_shape": "[None, 52]",
+        "output_shape": "[None, 1]",
+        "max_prediction_diff": 1.9400106876510392e-07,
+        "validation_status": "PASSED",
+        "opset_version": 12,
+        "target": "UCAF"
+      }
+    ]
+  },
+  "benchmarks": {
+    "device_info": {
+      "platform": "Linux-4.4.0-x86_64-with-glibc2.39",
+      "processor": "x86_64",
+      "architecture": "x86_64",
+      "python_version": "3.11.14",
+      "cpu_count": 16,
+      "cpu_count_logical": 16,
+      "memory_total_gb": 13.0,
+      "device_type": "x86_64 Device"
+    },
+    "benchmarks": [
+      {
+        "model_type": "ONNX",
+        "model_path": "/home/user/Unit_Cooler_CIS/deployment/onnx/lightgbm_ucaot.onnx",
+        "load_time_ms": 31.46,
+        "n_iterations": 1000,
+        "latency_mean_ms": 0.017,
+        "latency_std_ms": 0.004,
+        "latency_min_ms": 0.013,
+        "latency_max_ms": 0.097,
+        "latency_p50_ms": 0.016,
+        "latency_p95_ms": 0.022,
+        "latency_p99_ms": 0.028,
+        "throughput_inferences_per_sec": 59165.41,
+        "memory_increase_mb": 7.62
+      },
+      {
+        "model_type": "ONNX",
+        "model_path": "/home/user/Unit_Cooler_CIS/deployment/onnx/lightgbm_ucaf.onnx",
+        "load_time_ms": 5.59,
+        "n_iterations": 1000,
+        "latency_mean_ms": 0.016,
+        "latency_std_ms": 0.003,
+        "latency_min_ms": 0.012,
+        "latency_max_ms": 0.039,
+        "latency_p50_ms": 0.015,
+        "latency_p95_ms": 0.021,
+        "latency_p99_ms": 0.029,
+        "throughput_inferences_per_sec": 61862.3,
+        "memory_increase_mb": 0.0
+      },
+      {
+        "model_type": "ONNX",
+        "model_path": "/home/user/Unit_Cooler_CIS/deployment/onnx/lightgbm_ucwot.onnx",
+        "load_time_ms": 15.5,
+        "n_iterations": 1000,
+        "latency_mean_ms": 0.015,
+        "latency_std_ms": 0.001,
+        "latency_min_ms": 0.013,
+        "latency_max_ms": 0.031,
+        "latency_p50_ms": 0.015,
+        "latency_p95_ms": 0.017,
+        "latency_p99_ms": 0.022,
+        "throughput_inferences_per_sec": 66096.66,
+        "memory_increase_mb": 0.0
+      }
+    ]
+  }
+}
