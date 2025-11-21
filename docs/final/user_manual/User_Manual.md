@@ -2,7 +2,7 @@
 ## Operational Guide for System Operators
 
 **Version**: 1.0
-**Date**: 2025-11-18
+**Date**: 2025-11-21
 **For**: System Operators, Engineers, Maintenance Personnel
 
 ---
@@ -287,7 +287,7 @@ Feature: Water Inlet Temperature (UCWIT)
 PSI Score: 2.55 (threshold: 0.2)
 Status: CRITICAL
 Recommendation: Review sensor calibration
-Report: monitoring/drift_report_2025-11-18.json
+Report: monitoring/drift_report_2025-11-21.json
 ```
 
 **What to Do:**
@@ -521,5 +521,5 @@ A: Yes. All communication encrypted (HTTPS/TLS). Data stored locally only.
 🔧 Maintenance Guide: `docs/final/maintenance/Maintenance_Guide.md`
 🚀 Deployment Guide: `docs/final/deployment/Deployment_Guide.md`
 
-**Last Updated:** 2025-11-18
+**Last Updated:** 2025-11-21
 **Manual Version:** 1.0
