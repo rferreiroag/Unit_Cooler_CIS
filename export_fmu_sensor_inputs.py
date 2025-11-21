@@ -49,6 +49,16 @@ else:
     print("    Run: python clean_scaler_for_fmu.py")
     exit(1)
 
+# Copy clean y_scaler (for output descaling)
+y_scaler_src = Path("data/processed_no_leakage/y_scaler_clean.pkl")
+if y_scaler_src.exists():
+    shutil.copy(y_scaler_src, resources_dir / "y_scaler.pkl")
+    print(f"  ✓ Copied {y_scaler_src} -> y_scaler.pkl")
+else:
+    print(f"  ✗ Clean y_scaler not found: {y_scaler_src}")
+    print("    Run: python extract_y_scaler_for_fmu.py")
+    exit(1)
+
 # Copy metadata
 metadata_src = Path("data/processed_no_leakage/metadata.json")
 if metadata_src.exists():
@@ -92,6 +102,7 @@ try:
             "-f", "hvac_fmu_sensor_inputs.py",
             "resources/lightgbm_model_no_leakage.pkl",
             "resources/scaler.pkl",
+            "resources/y_scaler.pkl",
             "resources/metadata.json"
         ],
         capture_output=True,

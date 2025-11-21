@@ -175,22 +175,27 @@ if PYTHONFMU_AVAILABLE:
                 # Try to load models with error handling
                 model_path = resources_dir / "lightgbm_model_no_leakage.pkl"
                 scaler_path = resources_dir / "scaler.pkl"
+                y_scaler_path = resources_dir / "y_scaler.pkl"
 
                 if not model_path.exists():
                     raise FileNotFoundError("Model file not found: {}".format(model_path))
                 if not scaler_path.exists():
                     raise FileNotFoundError("Scaler file not found: {}".format(scaler_path))
+                if not y_scaler_path.exists():
+                    raise FileNotFoundError("Y_scaler file not found: {}".format(y_scaler_path))
 
                 model_data = joblib.load(str(model_path))
                 self.models = model_data['models']
                 self.scaler = joblib.load(str(scaler_path))
-                print("[OK] Loaded models from: {}".format(resources_dir))
+                self.y_scaler = joblib.load(str(y_scaler_path))
+                print("[OK] Loaded models and scalers from: {}".format(resources_dir))
             except ImportError as e:
                 print("ERROR: Missing Python package: {}".format(e))
                 print("  Install required packages:")
                 print("  pip install numpy scikit-learn lightgbm joblib")
                 self.models = None
                 self.scaler = None
+                self.y_scaler = None
             except Exception as e:
                 print("WARNING: Could not load models: {}".format(e))
                 print("  Resources dir: {}".format(resources_dir))
@@ -200,8 +205,12 @@ if PYTHONFMU_AVAILABLE:
                 print("  Scaler path exists: {}".format(
                     (resources_dir / "scaler.pkl").exists()
                     if isinstance(resources_dir, Path) else 'N/A'))
+                print("  Y_scaler path exists: {}".format(
+                    (resources_dir / "y_scaler.pkl").exists()
+                    if isinstance(resources_dir, Path) else 'N/A'))
                 self.models = None
                 self.scaler = None
+                self.y_scaler = None
 
             # Initialize feature computer
             self.feature_computer = FeatureComputer()
@@ -262,7 +271,7 @@ if PYTHONFMU_AVAILABLE:
         def do_step(self, current_time, step_size):
             """Execute one simulation step"""
 
-            if self.models is None or self.scaler is None:
+            if self.models is None or self.scaler is None or self.y_scaler is None:
                 # Fallback if models not loaded
                 self.UCAOT = 20.0
                 self.UCWOT = 20.0
@@ -299,10 +308,20 @@ if PYTHONFMU_AVAILABLE:
             # Scale features
             features_scaled = self.scaler.transform(features.reshape(1, -1))
 
-            # Make predictions
-            self.UCAOT = float(self.models['UCAOT'].predict(features_scaled)[0])
-            self.UCWOT = float(self.models['UCWOT'].predict(features_scaled)[0])
-            self.UCAF = float(self.models['UCAF'].predict(features_scaled)[0])
+            # Make predictions (scaled outputs)
+            y_pred_scaled = np.array([
+                self.models['UCAOT'].predict(features_scaled)[0],
+                self.models['UCWOT'].predict(features_scaled)[0],
+                self.models['UCAF'].predict(features_scaled)[0]
+            ]).reshape(1, -1)
+
+            # Descale outputs to get physical values (temperatures in C, flow in m3/h)
+            y_pred = self.y_scaler.inverse_transform(y_pred_scaled)[0]
+
+            # Assign to outputs
+            self.UCAOT = float(y_pred[0])
+            self.UCWOT = float(y_pred[1])
+            self.UCAF = float(y_pred[2])
 
             return True
 
