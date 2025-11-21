@@ -25,6 +25,7 @@ MANIFEST
 
 # Generated packages
 *.zip
+!validation_data_package.zip
 *.tar.gz
 *.tar
 
