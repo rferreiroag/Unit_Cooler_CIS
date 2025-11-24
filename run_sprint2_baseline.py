@@ -33,16 +33,16 @@ plt.rcParams['figure.figsize'] = (12, 6)
 
 
 def load_processed_data():
-    """Load processed data from Sprint 1"""
+    """Load processed data from Sprint 1 (NO LEAKAGE version)"""
     print("\n" + "="*80)
-    print(" LOADING PROCESSED DATA FROM SPRINT 1")
+    print(" LOADING PROCESSED DATA FROM SPRINT 1 (NO LEAKAGE)")
     print("="*80)
 
-    data_dir = Path('data/processed')
+    data_dir = Path('data/processed_no_leakage')
 
     if not data_dir.exists():
         raise FileNotFoundError(
-            "Processed data not found. Please run: python run_sprint1_pipeline.py"
+            "Processed data not found. Please run: python run_sprint1_pipeline_no_leakage.py"
         )
 
     # Load scaled arrays
@@ -381,8 +381,11 @@ def main():
 │  Output Files:                                                  │
 │    • results/advanced_baseline_comparison.csv                   │
 │    • models/xgboost_model.pkl                                   │
-│    • models/lightgbm_model.pkl                                  │
+│    • models/lightgbm_model.pkl (comparison only)                │
 │    • models/mlp_model.h5                                        │
+│                                                                 │
+│  NOTE: For production, use models/lightgbm_model_no_leakage.pkl │
+│        from train_model_no_leakage.py                           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 """)

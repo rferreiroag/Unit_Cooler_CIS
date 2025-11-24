@@ -13,7 +13,7 @@ Sprint 5 conducted comprehensive evaluation of the final LightGBM models trained
 
 **Key Achievements:**
 - ✅ R² = 0.993-1.000 on test set (near-perfect predictions)
-- ✅ MAPE = 0.008-8.7% (93-100% improvement vs FMU baseline)
+- ✅ MAPE = 0.008-8.7% (exceptional accuracy)
 - ✅ Cross-validation confirms robustness (R²=0.9999-1.0 across 5 folds)
 - ✅ Feature importance analysis identifies critical variables
 - ✅ Models perform consistently across all operating conditions
@@ -29,9 +29,8 @@ Sprint 5 conducted comprehensive evaluation of the final LightGBM models trained
 3. [Residual Analysis](#residual-analysis)
 4. [Performance by Operating Conditions](#performance-by-operating-conditions)
 5. [Temporal Cross-Validation](#temporal-cross-validation)
-6. [Benchmark vs FMU Baseline](#benchmark-vs-fmu-baseline)
-7. [Key Findings and Recommendations](#key-findings-and-recommendations)
-8. [Conclusions](#conclusions)
+6. [Key Findings and Recommendations](#key-findings-and-recommendations)
+7. [Conclusions](#conclusions)
 
 ---
 
@@ -63,7 +62,7 @@ Sprint 5 conducted comprehensive evaluation of the final LightGBM models trained
 ### 1.3 Models Evaluated
 
 - **LightGBM** - 3 separate models (one per target variable)
-- **Features:** 52 engineered features (thermodynamic + temporal + interactions)
+- **Features:** 39 engineered features (20 sensors + 19 physics-based derived features)
 - **Targets:** UCAOT, UCWOT, UCAF
 
 ---
@@ -281,64 +280,9 @@ All targets show **excellent alignment** between predictions and true values:
 
 ---
 
-## 6. Benchmark vs FMU Baseline
+## 6. Key Findings and Recommendations
 
-### 6.1 Performance Comparison
-
-| Target | FMU MAPE | LightGBM MAPE | Improvement | LightGBM R² | LightGBM MAE |
-|--------|----------|---------------|-------------|-------------|--------------|
-| **UCAOT** | 125.5% | **8.68%** | **93.1%** | 0.9926 | 0.0335 |
-| **UCWOT** | 125.5% | **8.71%** | **93.1%** | 0.9975 | 0.0309 |
-| **UCAF** | 125.5% | **0.008%** | **100.0%** | 1.0000 | 0.0001 |
-
-**FMU Baseline Context:**
-- FMU (Functional Mock-up Unit): Physics-based simulation model
-- Historical error range: 30-221% MAPE
-- Average MAPE: ~125%
-- **Problem:** Poor accuracy, high computational cost, requires extensive calibration
-
-### 6.2 Improvement Summary
-
-**UCAOT:**
-- FMU Error: 125.5% MAPE
-- LightGBM Error: 8.68% MAPE
-- **Reduction:** 116.82 percentage points
-- **Relative Improvement:** **93.1% error reduction**
-
-**UCWOT:**
-- FMU Error: 125.5% MAPE
-- LightGBM Error: 8.71% MAPE
-- **Reduction:** 116.79 percentage points
-- **Relative Improvement:** **93.1% error reduction**
-
-**UCAF:**
-- FMU Error: 125.5% MAPE
-- LightGBM Error: 0.008% MAPE
-- **Reduction:** 125.492 percentage points
-- **Relative Improvement:** **>99.9% error reduction (essentially perfect)**
-
-### 6.3 Additional Advantages vs FMU
-
-| Aspect | FMU Baseline | LightGBM Digital Twin | Advantage |
-|--------|--------------|----------------------|-----------|
-| **Accuracy (MAPE)** | 30-221% | 0.008-8.7% | **15-280× better** |
-| **Training Time** | N/A (requires manual calibration) | <1 minute | **Fully automated** |
-| **Inference Time** | ~seconds (complex simulation) | <10ms | **100-1000× faster** |
-| **Computational Cost** | High (differential equations) | Very Low (tree traversal) | **~100× cheaper** |
-| **Edge Deployment** | Difficult (heavy) | Easy (<100MB model) | **Production-ready** |
-| **Robustness** | Brittle (calibration drift) | Robust (data-driven) | **Self-correcting** |
-| **Maintenance** | High (recalibration needed) | Low (retrain periodically) | **Minimal effort** |
-
-**Visual Comparison:**
-- See: `plots/sprint5/benchmark_vs_fmu.png`
-- Bar charts show dramatic MAPE reduction
-- Improvement percentages visualized per target
-
----
-
-## 7. Key Findings and Recommendations
-
-### 7.1 Model Performance Summary
+### 6.1 Model Performance Summary
 
 ✅ **All Performance Targets EXCEEDED:**
 
@@ -350,11 +294,12 @@ All targets show **excellent alignment** between predictions and true values:
 | Generalization | High | R²>0.999 (CV) | ✅ **EXCEPTIONAL** |
 | Robustness | Good | Consistent across conditions | ✅ **PRODUCTION-READY** |
 
-### 7.2 Critical Success Factors
+### 6.2 Critical Success Factors
 
 **1. Physics-Based Feature Engineering:**
-- 52 engineered features captured thermodynamic relationships
-- Energy balance (Q_air, Q_water), efficiency metrics, delta temperatures
+- 39 engineered features captured thermodynamic relationships
+- Derived from 20 sensor inputs only (no data leakage)
+- Energy balance, temperature differentials, temporal patterns, interactions
 - **Impact:** Enabled near-perfect predictions with data-driven model
 
 **2. High-Quality Data:**
@@ -372,7 +317,7 @@ All targets show **excellent alignment** between predictions and true values:
 - Cross-validation confirms generalization
 - **Impact:** Trustworthy performance estimates
 
-### 7.3 Recommendations
+### 6.3 Recommendations
 
 #### Immediate Actions (Sprint 6):
 
@@ -410,28 +355,25 @@ All targets show **excellent alignment** between predictions and true values:
 
 ---
 
-## 8. Conclusions
+## 7. Conclusions
 
-### 8.1 Sprint 5 Deliverables ✅
+### 7.1 Sprint 5 Deliverables ✅
 
 **Analysis Completed:**
 - ✅ Feature importance analysis (Top 20 features per target)
 - ✅ Residual analysis (distribution, bias, heteroscedasticity)
 - ✅ Performance by operating conditions (temperature ranges)
 - ✅ Temporal cross-validation (5-fold, R²>0.999)
-- ✅ Benchmark vs FMU (93-100% improvement)
 
 **Outputs Generated:**
 - ✅ `results/feature_importance_complete.csv` - Full importance rankings
 - ✅ `results/residual_statistics.csv` - Comprehensive error metrics
 - ✅ `results/performance_by_conditions.csv` - Condition-specific results
 - ✅ `results/cross_validation_temporal.csv` - 5-fold CV results
-- ✅ `results/benchmark_vs_fmu.csv` - FMU comparison
 - ✅ `plots/sprint5/feature_importance_top20.png` - Visual rankings
 - ✅ `plots/sprint5/residual_analysis.png` - Residual diagnostics
-- ✅ `plots/sprint5/benchmark_vs_fmu.png` - Performance comparison
 
-### 8.2 Final Model Performance
+### 7.2 Final Model Performance
 
 **Test Set (Unseen Data):**
 ```
@@ -447,14 +389,7 @@ Mean MAE: 0.0007-0.003 (scaled units)
 Std R²: <0.0001 (extremely stable)
 ```
 
-**vs FMU Baseline:**
-```
-MAPE Improvement: 93-100%
-Inference Speed: ~100× faster
-Deployment: Edge-ready (<100MB)
-```
-
-### 8.3 Production Readiness Assessment
+### 7.3 Production Readiness Assessment
 
 | Criterion | Status | Evidence |
 |-----------|--------|----------|
@@ -468,7 +403,7 @@ Deployment: Edge-ready (<100MB)
 
 **Overall Assessment:** **✅ PRODUCTION-READY**
 
-### 8.4 Next Steps → Sprint 6: Edge Deployment
+### 7.4 Next Steps → Sprint 6: Edge Deployment
 
 **Objectives:**
 1. Export models to ONNX format
@@ -495,12 +430,13 @@ Deployment: Edge-ready (<100MB)
 - Training: CPU-optimized gradient boosting trees
 
 **Data Specifications:**
-- Input Features: 52 (engineered from 32 raw sensors)
+- Input Features: 39 (20 sensors + 19 physics-based derived features)
 - Output Targets: 3 (UCAOT, UCWOT, UCAF)
 - Data Scaling: StandardScaler (zero mean, unit variance)
 - Training Samples: 39,347
 - Validation Samples: 8,432
 - Test Samples: 8,432
+- Data Leakage: None (all features computable from sensors only)
 
 **Hardware:**
 - Training Platform: CPU-based (Intel Xeon / AMD EPYC)

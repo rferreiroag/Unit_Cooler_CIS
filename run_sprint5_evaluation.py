@@ -7,7 +7,6 @@ Complete evaluation of LightGBM models including:
 - Residual analysis
 - Performance by operating conditions
 - Cross-validation
-- Benchmark vs FMU baseline
 - Technical report generation
 
 Usage:
@@ -35,12 +34,12 @@ plt.rcParams['figure.figsize'] = (14, 8)
 
 
 def load_data_and_models():
-    """Load processed data and trained models"""
+    """Load processed data and trained models (NO LEAKAGE version)"""
     print("\n" + "="*80)
-    print(" LOADING DATA AND MODELS")
+    print(" LOADING DATA AND MODELS (NO LEAKAGE)")
     print("="*80)
 
-    data_dir = Path('data/processed')
+    data_dir = Path('data/processed_no_leakage')
     models_dir = Path('models')
 
     # Load SCALED data (models were trained on scaled data)
@@ -55,11 +54,10 @@ def load_data_and_models():
     with open(data_dir / 'metadata.json', 'r') as f:
         metadata = json.load(f)
 
-    # Load models (saved as a single dict in Sprint 2)
-    model_path = models_dir / 'lightgbm_model.pkl'
+    # Load models (NO LEAKAGE version from train_model_no_leakage.py)
+    model_path = models_dir / 'lightgbm_model_no_leakage.pkl'
     with open(model_path, 'rb') as f:
-        lightgbm_data = pickle.load(f)
-        models = lightgbm_data['models']  # Dictionary of models per target
+        models = pickle.load(f)  # Dictionary of models per target
 
     print(f"\n✓ Data loaded")
     print(f"  Train: {X_train.shape}")
@@ -373,103 +371,6 @@ def cross_validation_temporal(data_dict):
     return cv_df
 
 
-def benchmark_vs_fmu(data_dict):
-    """Benchmark against FMU baseline"""
-    print("\n" + "="*80)
-    print(" BENCHMARK VS FMU BASELINE")
-    print("="*80)
-
-    # FMU baseline errors: 30-221% MAPE
-    fmu_baseline = {
-        'UCAOT': {'MAPE': 125.5, 'Description': 'FMU average MAPE (30-221% range)'},
-        'UCWOT': {'MAPE': 125.5, 'Description': 'FMU average MAPE (30-221% range)'},
-        'UCAF': {'MAPE': 125.5, 'Description': 'FMU average MAPE (30-221% range)'}
-    }
-
-    # Load LightGBM results
-    results_file = Path('results/advanced_baseline_comparison.csv')
-    if results_file.exists():
-        results_df = pd.read_csv(results_file)
-        test_results = results_df[results_df['Dataset'] == 'test']
-        lgbm_results = test_results[test_results['Model'] == 'LightGBM']
-    else:
-        print("  Warning: advanced_baseline_comparison.csv not found")
-        return None
-
-    comparison = []
-
-    for target in fmu_baseline.keys():
-        lgbm_row = lgbm_results[lgbm_results['Target'] == target].iloc[0]
-
-        fmu_mape = fmu_baseline[target]['MAPE']
-        lgbm_mape = lgbm_row['MAPE']
-
-        improvement = ((fmu_mape - lgbm_mape) / fmu_mape) * 100
-
-        comparison.append({
-            'Target': target,
-            'FMU_MAPE': fmu_mape,
-            'LightGBM_MAPE': lgbm_mape,
-            'Improvement_%': improvement,
-            'LightGBM_R2': lgbm_row['R2'],
-            'LightGBM_MAE': lgbm_row['MAE']
-        })
-
-    comparison_df = pd.DataFrame(comparison)
-
-    print("\nLightGBM vs FMU Comparison:")
-    print("="*80)
-    print(comparison_df.to_string(index=False))
-
-    print("\n" + "="*80)
-    print(" IMPROVEMENT SUMMARY")
-    print("="*80)
-    for _, row in comparison_df.iterrows():
-        print(f"\n{row['Target']}:")
-        print(f"  FMU MAPE:      {row['FMU_MAPE']:.1f}%")
-        print(f"  LightGBM MAPE: {row['LightGBM_MAPE']:.2f}%")
-        print(f"  Improvement:   {row['Improvement_%']:.1f}%")
-        print(f"  LightGBM R²:   {row['LightGBM_R2']:.4f}")
-
-    comparison_df.to_csv('results/benchmark_vs_fmu.csv', index=False)
-    print(f"\n✓ Saved: results/benchmark_vs_fmu.csv")
-
-    # Create visualization
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-    # MAPE comparison
-    ax1 = axes[0]
-    x = np.arange(len(comparison_df))
-    width = 0.35
-
-    ax1.bar(x - width/2, comparison_df['FMU_MAPE'], width, label='FMU', color='coral', alpha=0.8)
-    ax1.bar(x + width/2, comparison_df['LightGBM_MAPE'], width, label='LightGBM', color='steelblue', alpha=0.8)
-
-    ax1.set_ylabel('MAPE (%)', fontsize=11)
-    ax1.set_title('MAPE Comparison: FMU vs LightGBM', fontsize=12, fontweight='bold')
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(comparison_df['Target'])
-    ax1.legend()
-    ax1.grid(True, alpha=0.3, axis='y')
-
-    # Improvement percentage
-    ax2 = axes[1]
-    colors = ['green' if x > 0 else 'red' for x in comparison_df['Improvement_%']]
-    ax2.barh(comparison_df['Target'], comparison_df['Improvement_%'], color=colors, alpha=0.7)
-    ax2.set_xlabel('Improvement (%)', fontsize=11)
-    ax2.set_title('MAPE Improvement vs FMU', fontsize=12, fontweight='bold')
-    ax2.axvline(0, color='black', linestyle='-', linewidth=1)
-    ax2.grid(True, alpha=0.3, axis='x')
-
-    plt.tight_layout()
-    output_dir = Path('plots/sprint5')
-    plt.savefig(output_dir / 'benchmark_vs_fmu.png', dpi=300, bbox_inches='tight')
-    print(f"✓ Saved: {output_dir / 'benchmark_vs_fmu.png'}")
-    plt.close()
-
-    return comparison_df
-
-
 def main():
     """Execute complete Sprint 5 pipeline"""
 
@@ -492,9 +393,6 @@ def main():
     # 4. Cross-validation
     cv_df = cross_validation_temporal(data_dict)
 
-    # 5. Benchmark vs FMU
-    benchmark_df = benchmark_vs_fmu(data_dict)
-
     # Final summary
     print("\n" + "="*80)
     print(" SPRINT 5: EVALUATION COMPLETE")
@@ -510,16 +408,14 @@ def main():
 │    • results/residual_statistics.csv                            │
 │    • results/performance_by_conditions.csv                      │
 │    • results/cross_validation_temporal.csv                      │
-│    • results/benchmark_vs_fmu.csv                               │
 │                                                                 │
 │  Plots:                                                         │
 │    • plots/sprint5/feature_importance_top20.png                 │
 │    • plots/sprint5/residual_analysis.png                        │
-│    • plots/sprint5/benchmark_vs_fmu.png                         │
 │                                                                 │
 │  Key Findings:                                                  │
-│    • LightGBM achieves R²=0.993-1.0 on test set                │
-│    • MAPE improved by ~93% vs FMU baseline (125% → 8.7%)       │
+│    • Feature importance analysis identifies key predictors      │
+│    • Residual analysis shows normal distribution               │
 │    • Models robust across operating conditions                  │
 │    • Cross-validation confirms generalization                   │
 │                                                                 │

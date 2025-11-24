@@ -31,12 +31,12 @@ plt.rcParams['figure.figsize'] = (12, 6)
 
 
 def load_processed_data():
-    """Load processed data from Sprint 1"""
+    """Load processed data from Sprint 1 (NO LEAKAGE version)"""
     print("\n" + "="*80)
-    print(" LOADING PROCESSED DATA")
+    print(" LOADING PROCESSED DATA (NO LEAKAGE)")
     print("="*80)
 
-    data_dir = Path('data/processed')
+    data_dir = Path('data/processed_no_leakage')
 
     # Load scaled arrays
     X_train = np.load(data_dir / 'X_train_scaled.npy').astype(np.float32)
