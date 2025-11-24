@@ -35,12 +35,12 @@ plt.rcParams['figure.figsize'] = (14, 8)
 
 
 def load_data_and_models():
-    """Load processed data and trained models"""
+    """Load processed data and trained models (NO LEAKAGE version)"""
     print("\n" + "="*80)
-    print(" LOADING DATA AND MODELS")
+    print(" LOADING DATA AND MODELS (NO LEAKAGE)")
     print("="*80)
 
-    data_dir = Path('data/processed')
+    data_dir = Path('data/processed_no_leakage')
     models_dir = Path('models')
 
     # Load SCALED data (models were trained on scaled data)
@@ -55,11 +55,10 @@ def load_data_and_models():
     with open(data_dir / 'metadata.json', 'r') as f:
         metadata = json.load(f)
 
-    # Load models (saved as a single dict in Sprint 2)
-    model_path = models_dir / 'lightgbm_model.pkl'
+    # Load models (NO LEAKAGE version from train_model_no_leakage.py)
+    model_path = models_dir / 'lightgbm_model_no_leakage.pkl'
     with open(model_path, 'rb') as f:
-        lightgbm_data = pickle.load(f)
-        models = lightgbm_data['models']  # Dictionary of models per target
+        models = pickle.load(f)  # Dictionary of models per target
 
     print(f"\n✓ Data loaded")
     print(f"  Train: {X_train.shape}")
